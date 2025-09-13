@@ -18,8 +18,8 @@ type ApiResponse struct {
 	Meta struct {
 		Paginate struct {
 			NextPage string `json:"next_page"`
-		} `json:"paginate"`
-	} `json:"meta"`
+		}
+	}
 }
 
 type User struct {
