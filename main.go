@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/xuri/excelize/v2"
 )
 
 // ApiResponse reflects the top-level structure of the API response
@@ -26,6 +27,12 @@ type User struct {
 	PhoneNumber *string `json:"phone_number"`
 	Department  *string `json:"department"`
 	Title       *string `json:"title"`
+}
+
+func mustSetCellValue(f *excelize.File, sheet, axis string, value interface{}) {
+	if err := f.SetCellValue(sheet, axis, value); err != nil {
+		panic(err)
+	}
 }
 
 func main() {
@@ -80,7 +87,26 @@ func main() {
 		return
 	}
 
-	for _, user := range apiResponse.Data {
+	f := excelize.NewFile()
+	// Create a new sheet.
+	index, err := f.NewSheet("Sheet1")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	// Set value of a cell.
+	mustSetCellValue(f, "Sheet1", "A1", "ID")
+	mustSetCellValue(f, "Sheet1", "B1", "Email")
+	mustSetCellValue(f, "Sheet1", "C1", "Nickname")
+	mustSetCellValue(f, "Sheet1", "D1", "FirstName")
+	mustSetCellValue(f, "Sheet1", "E1", "LastName")
+	mustSetCellValue(f, "Sheet1", "F1", "Role")
+	mustSetCellValue(f, "Sheet1", "G1", "PhoneNumber")
+	mustSetCellValue(f, "Sheet1", "H1", "Department")
+	mustSetCellValue(f, "Sheet1", "I1", "Title")
+
+	for i, user := range apiResponse.Data {
+		row := i + 2
 		phoneNumber := ""
 		if user.PhoneNumber != nil {
 			phoneNumber = *user.PhoneNumber
@@ -93,6 +119,21 @@ func main() {
 		if user.Title != nil {
 			title = *user.Title
 		}
-		fmt.Printf("ID: %d, Email: %s, Nickname: %s, FullName: %s %s, Role: %s, Phone: %s, Department: %s, Title: %s\n", user.ID, user.Email, user.Nickname, user.FirstName, user.LastName, user.Role, phoneNumber, department, title)
+
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("A%d", row), user.ID)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("B%d", row), user.Email)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("C%d", row), user.Nickname)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("D%d", row), user.FirstName)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("E%d", row), user.LastName)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("F%d", row), user.Role)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("G%d", row), phoneNumber)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("H%d", row), department)
+		mustSetCellValue(f, "Sheet1", fmt.Sprintf("I%d", row), title)
+	}
+
+	f.SetActiveSheet(index)
+
+	if err := f.SaveAs("pachca_users.xlsx"); err != nil {
+		fmt.Println(err)
 	}
 }
