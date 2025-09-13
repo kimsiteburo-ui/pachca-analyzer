@@ -54,8 +54,11 @@ func main() {
 	client := &http.Client{}
 	var allUsers []User
 	nextPage := ""
+	iteration := 0
 
 	for {
+		iteration++
+		fmt.Printf("Iteration: %d\n", iteration)
 		url := "https://api.pachca.com/api/shared/v1/users"
 		if nextPage != "" {
 			url = fmt.Sprintf("%s?after_id=%s", "https://api.pachca.com/api/shared/v1/users", nextPage)
