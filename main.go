@@ -56,7 +56,7 @@ func main() {
 	nextPage := ""
 	iteration := 0
 
-	for {
+	for i := 0; i < 400; i++ {
 		iteration++
 		fmt.Printf("Iteration: %d\n", iteration)
 		url := "https://api.pachca.com/api/shared/v1/users"
