@@ -104,6 +104,7 @@ func main() {
 		}
 
 		allUsers = append(allUsers, apiResponse.Data...)
+		fmt.Printf("Received %d records. Total records: %d\n", len(apiResponse.Data), len(allUsers))
 
 		if apiResponse.Meta.Paginate.NextPage == "" {
 			break
