@@ -18,8 +18,8 @@ type ApiResponse struct {
 	Meta struct {
 		Paginate struct {
 			NextPage string `json:"next_page"`
-		}
-	}
+		} `json:"paginate"`
+	} `json:"meta"`
 }
 
 type User struct {
@@ -58,7 +58,7 @@ func main() {
 	for {
 		url := "https://api.pachca.com/api/shared/v1/users"
 		if nextPage != "" {
-			url = nextPage
+			url = fmt.Sprintf("%s?cursor=%s", url, nextPage)
 		}
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
