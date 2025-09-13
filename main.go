@@ -15,6 +15,11 @@ import (
 // ApiResponse reflects the top-level structure of the API response
 type ApiResponse struct {
 	Data []User `json:"data"`
+	Meta struct {
+		Paginate struct {
+			NextPage string `json:"next_page"`
+		} `json:"paginate"`
+	} `json:"meta"`
 }
 
 type User struct {
@@ -47,44 +52,60 @@ func main() {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://api.pachca.com/api/shared/v1/users", nil)
-	if err != nil {
-		fmt.Println("Ошибка при создании запроса:", err)
-		return
-	}
+	var allUsers []User
+	nextPage := ""
 
-	req.Header.Add("Authorization", "Bearer "+apiToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Ошибка при выполнении запроса:", err)
-		return
-	}
-	defer func() {
-		err := resp.Body.Close()
+	for {
+		url := "https://api.pachca.com/api/shared/v1/users"
+		if nextPage != "" {
+			url = nextPage
+		}
+		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
+			fmt.Println("Ошибка при создании запроса:", err)
+			return
+		}
+
+		req.Header.Add("Authorization", "Bearer "+apiToken)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Println("Ошибка при выполнении запроса:", err)
+			return
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Ошибка при чтении ответа:", err)
+			if err := resp.Body.Close(); err != nil {
+				log.Printf("Failed to close response body: %v", err)
+			}
+			return
+		}
+		if err := resp.Body.Close(); err != nil {
 			log.Printf("Failed to close response body: %v", err)
 		}
-	}()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Ошибка при чтении ответа:", err)
-		return
-	}
+		fmt.Println("Response Status Code:", resp.StatusCode)
 
-	fmt.Println("Response Status Code:", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Ошибка API: %s\n", string(body))
+			return
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Ошибка API: %s\n", string(body))
-		return
-	}
+		var apiResponse ApiResponse
+		err = json.Unmarshal(body, &apiResponse)
+		if err != nil {
+			fmt.Println("Ошибка при разборе JSON:", err)
+			return
+		}
 
-	var apiResponse ApiResponse
-	err = json.Unmarshal(body, &apiResponse)
-	if err != nil {
-		fmt.Println("Ошибка при разборе JSON:", err)
-		return
+		allUsers = append(allUsers, apiResponse.Data...)
+
+		if apiResponse.Meta.Paginate.NextPage == "" {
+			break
+		}
+		nextPage = apiResponse.Meta.Paginate.NextPage
 	}
 
 	f := excelize.NewFile()
@@ -105,7 +126,7 @@ func main() {
 	mustSetCellValue(f, "Sheet1", "H1", "Department")
 	mustSetCellValue(f, "Sheet1", "I1", "Title")
 
-	for i, user := range apiResponse.Data {
+	for i, user := range allUsers {
 		row := i + 2
 		phoneNumber := ""
 		if user.PhoneNumber != nil {
